@@ -1,4 +1,5 @@
 Flask==2.0.1
+flask-socketio>=5.3.6
 Werkzeug==2.0.0
 telnyx==2.1.2
 python-dotenv==1.0.1
