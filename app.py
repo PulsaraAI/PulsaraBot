@@ -126,23 +126,8 @@ def webhook():
 
         return '', 204
 
-          
     except Exception as e:
         logging.error(f"Error handling webhook: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/generate_gpt_response", methods=["POST"])
-def generate_gpt_response():
-    try:
-        data = request.get_json()
-        prompt = data['prompt']
-        
-        response_text = generate_response(prompt)
-        
-        return jsonify({"response": response_text})
-
-    except Exception as e:
-        logging.error(f"Error generating GPT response: {e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
