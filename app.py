@@ -126,6 +126,7 @@ def webhook():
 
         return '', 204
 
+          
     except Exception as e:
         logging.error(f"Error handling webhook: {e}")
         return jsonify({"error": str(e)}), 500
