@@ -1,0 +1,4 @@
+Flask==2.0.1
+python-dotenv==0.17.1
+telnyx==2.3.0
+azure-cognitiveservices-speech==1.15.0
