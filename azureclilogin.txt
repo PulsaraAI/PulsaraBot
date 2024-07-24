@@ -1,0 +1,53 @@
+
+az login
+
+3. Get Deployment Information
+To check the deployment history of your Azure Web App, you will need to know the name of your web app and the resource group it belongs to.
+
+
+az webapp deployment list --resource-group Pulsara.AI --name <your-web-app-name>
+
+
+az webapp deployment list --resource-group Pulsara.AI --name <your-web-app-name>
+
+Replace <your-resource-group> and <your-web-app-name> with your actual resource group name and web app name.
+
+Example
+Suppose your resource group name is MyResourceGroup and your web app name is MyWebApp. The command would look like this:
+
+
+az webapp deployment list --resource-group Pulsara.AI --name PulsaraBot
+
+
+Interpreting the Output
+The output will be in JSON format and will contain details about each deployment. Look for the timestamp field to find the date and time of the last deployment. Here's an example output snippet:
+
+json
+Copy code
+[
+  {
+    "id": "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/MyResourceGroup/providers/Microsoft.Web/sites/MyWebApp/deployments/1234567890",
+    "status": "Succeeded",
+    "timestamp": "2024-07-24T12:34:56.789Z",
+    "message": "Deployment successful",
+    ...
+  }
+]
+In this example, the timestamp field 2024-07-24T12:34:56.789Z indicates the date and time of the deployment.
+
+Additional Commands
+If you need more details about a specific deployment, you can use:
+
+sh
+Copy code
+az webapp deployment show --resource-group MyResourceGroup --name MyWebApp --deployment-id <deployment-id>
+Replace <deployment-id> with the ID of the specific deployment you want to inspect.
+
+By following these instructions, you can use Azure CLI to check the last time your Azure Web App was updated.
+
+
+
+
+
+
+

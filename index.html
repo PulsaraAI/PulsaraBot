@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulsara Bot Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <h1>Pulsara Bot Interface</h1>
+    <form id="callForm">
+        <label for="phone_number">Phone Number:</label><br>
+        <input type="text" id="phone_number" name="phone_number"><br>
+        <label for="message">Message:</label><br>
+        <textarea id="message" name="message"></textarea><br><br>
+        <input type="submit" value="Initiate Call">
+    </form>
+    <div id="callStatus"></div>
+
+    <script>
+        document.getElementById("callForm").addEventListener("submit", function(event){
+            event.preventDefault();
+            const phoneNumber = document.getElementById("phone_number").value;
+            const message = document.getElementById("message").value;
+
+            fetch("/initiate_call", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    phone_number: phoneNumber,
+                    message: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.call_id) {
+                    document.getElementById("callStatus").innerText = "Call initiated with ID: " + data.call_id;
+                } else {
+                    document.getElementById("callStatus").innerText = "Error: " + data.error;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
