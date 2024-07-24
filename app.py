@@ -5,7 +5,7 @@ import tempfile
 import azure.cognitiveservices.speech as speechsdk
 from dotenv import load_dotenv
 import logging
-
+import argparse 
 # Load environment variables from .env file
 load_dotenv()
 
@@ -44,7 +44,7 @@ def initiate_call():
 
         # Create the call
         call = telnyx.Call.create(
-            connection_id=os.getenv('TELNYX_CONNECTION_ID'),
+            connection_id=os.getenv('2481856819488621758'),
             to=target_phone_number,
             from_=os.getenv('TELNYX_PHONE_NUMBER')
         )
@@ -69,26 +69,36 @@ def initiate_call():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
-        data = request.json['data']
-        event = data['event_type']
-        call_control_id = data['payload']['call_control_id']
+        data = request.json
+        logging.info(f"Received webhook: {data}")
+        event = data['data']['event_type']
+        call_control_id = data['data']['payload']['call_control_id']
 
         if event == "call.initiated":
-            # Retrieve the audio file path
-            with open("current_audio_path.txt", "r") as f:
-                audio_file_path = f.read().strip()
+            # Answer the call
+            telnyx.CallControl(call_control_id).answer()
+            logging.info(f"Call answered with ID: {call_control_id}")
 
-            # Use Telnyx Call Control API to play the audio file
-            with open(audio_file_path, "rb") as audio_file:
-                telnyx.CallControl(call_control_id).play_audio(
-                    audio_url='https://your-audio-file-url.wav'
-                )
+            # Send an initial message
+            initial_message = "Hello, welcome to the bot. How can I assist you today?"
+            audio_path = text_to_speech(initial_message)
+            telnyx.CallControl(call_control_id).play_audio(
+                audio_url='https://your-audio-file-url.wav'
+            )
 
-        return ('', 204)
+        elif event == "call.answered":
+            # Handle when the call is answered
+            logging.info(f"Call answered with ID: {call_control_id}")
+        
+        elif event == "call.hangup":
+            # Handle call hangup
+            logging.info(f"Call hung up with ID: {call_control_id}")
+
+        return '', 204
     
     except Exception as e:
         logging.error(f"Error handling webhook: {e}")
-        return ('', 500)
+        return jsonify({"error": str(e)}), 500
 
 def cli_call_and_speak(phone_number, message):
     try:
