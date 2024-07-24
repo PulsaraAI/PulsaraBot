@@ -1,15 +1,19 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, render_template, jsonify
+from flask_socketio import SocketIO, emit
 import telnyx
 import os
 import tempfile
 import azure.cognitiveservices.speech as speechsdk
 from dotenv import load_dotenv
 import logging
+import openai
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+socketio = SocketIO(app)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,20 +24,48 @@ telnyx.api_key = os.getenv('TELNYX_API_KEY')
 # Azure Speech Services Config
 speech_config = speechsdk.SpeechConfig(subscription=os.getenv('AZURE_SPEECH_KEY'), region=os.getenv('AZURE_SERVICE_REGION'))
 
+# OpenAI API Key
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
 def text_to_speech(text):
     """Convert text to speech and return the audio file path."""
     temp_audio_output = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
     audio_config = speechsdk.audio.AudioOutputConfig(filename=temp_audio_output.name)
     speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
     result = speech_synthesizer.speak_text_async(text).get()
-    
+
     if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
         logging.info("Speech synthesized to [{}]".format(temp_audio_output.name))
     else:
         logging.error("Speech synthesis failed: {}".format(result.reason))
         raise Exception("Speech synthesis failed")
-    
+
     return temp_audio_output.name
+
+def speech_to_text(audio_file_path):
+    """Convert speech to text from an audio file."""
+    audio_input = speechsdk.audio.AudioConfig(filename=audio_file_path)
+    speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_input)
+    result = speech_recognizer.recognize_once()
+
+    if result.reason == speechsdk.ResultReason.RecognizedSpeech:
+        return result.text
+    else:
+        logging.error("Speech recognition failed: {}".format(result.reason))
+        raise Exception("Speech recognition failed")
+
+def generate_response(prompt):
+    """Generate response using OpenAI's GPT."""
+    response = openai.Completion.create(
+        engine="gpt-4",
+        prompt=prompt,
+        max_tokens=150
+    )
+    return response.choices[0].text.strip()
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 @app.route("/initiate_call", methods=["POST"])
 def initiate_call():
@@ -61,7 +93,7 @@ def initiate_call():
 
         logging.info(f"Call initiated with ID: {call_id}")
         return jsonify({"call_id": call_id})
-    
+
     except Exception as e:
         logging.error(f"Error initiating call: {e}")
         return jsonify({"error": str(e)}), 500
@@ -82,56 +114,35 @@ def webhook():
             # Send an initial message
             initial_message = "Hello, welcome to the bot. How can I assist you today?"
             audio_path = text_to_speech(initial_message)
-            telnyx.CallControl(call_control_id).play_audio(
-                audio_url='https://your-audio-file-url.wav'
-            )
+            telnyx.CallControl(call_control_id).play_audio(audio_url=f"http://your-azure-web-app-url/static/{os.path.basename(audio_path)}")
 
         elif event == "call.answered":
             # Handle when the call is answered
             logging.info(f"Call answered with ID: {call_control_id}")
-        
+
         elif event == "call.hangup":
             # Handle call hangup
             logging.info(f"Call hung up with ID: {call_control_id}")
 
         return '', 204
-    
+
     except Exception as e:
         logging.error(f"Error handling webhook: {e}")
         return jsonify({"error": str(e)}), 500
 
-def cli_call_and_speak(phone_number, message):
+@app.route("/generate_gpt_response", methods=["POST"])
+def generate_gpt_response():
     try:
-        gpt_response = message  # Here you would call your GPT-3 API to generate the response
-        response_audio_path = text_to_speech(gpt_response)
+        data = request.get_json()
+        prompt = data['prompt']
+        
+        response_text = generate_response(prompt)
+        
+        return jsonify({"response": response_text})
 
-        # Initiate the call using Telnyx
-        call = telnyx.Call.create(
-            connection_id=os.getenv('TELNYX_CONNECTION_ID'),
-            to=phone_number,
-            from_=os.getenv('TELNYX_PHONE_NUMBER')
-        )
-
-        # Save the audio file path to be used in the webhook handler
-        with open("current_audio_path.txt", "w") as f:
-            f.write(response_audio_path)
-
-        logging.info(f"Call initiated with ID: {call.id}")
-        print(f"Call initiated with ID: {call.id}")
-        print(f"GPT-3 Response: {gpt_response}")
-    
     except Exception as e:
-        logging.error(f"Error in CLI call: {e}")
-        print(f"Error: {e}")
+        logging.error(f"Error generating GPT response: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="CLI for initiating calls and sending messages")
-    parser.add_argument("--phone_number", type=str, help="The phone number to call")
-    parser.add_argument("--message", type=str, help="The message to send")
-
-    args = parser.parse_args()
-    
-    if args.phone_number and args.message:
-        cli_call_and_speak(args.phone_number, args.message)
-    else:
-        app.run(host="0.0.0.0", port=5000)
+    socketio.run(app, host="0.0.0.0", port=5000)
