@@ -1,11 +1,11 @@
+
+
 Flask==2.0.1
-flask-socketio>=5.3.6
+flask-socketio>= 5.3.6
 Werkzeug==2.0.0
 telnyx==2.1.2
-python-dotenv==1.0.1
 azure-cognitiveservices-speech==1.38.0
+python-doten==0.17.1
+logging ==0.4.9.6
+argparse ==1.4.0
 openai>=1.37.0
-Flask==2.0.1
-python-dotenv==0.17.1
-telnyx==2.1.2
-azure-cognitiveservices-speech==1.15.0
