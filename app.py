@@ -69,26 +69,21 @@ def initiate_call():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
-        data = request.json['data']
-        event = data['event_type']
-        call_control_id = data['payload']['call_control_id']
+        data = request.json
+        logging.info(f"Received webhook: {data}")
+        event = data['data']['event_type']
+        call_control_id = data['data']['payload']['call_control_id']
 
         if event == "call.initiated":
-            # Retrieve the audio file path
-            with open("current_audio_path.txt", "r") as f:
-                audio_file_path = f.read().strip()
-
-            # Use Telnyx Call Control API to play the audio file
-            with open(audio_file_path, "rb") as audio_file:
-                telnyx.CallControl(call_control_id).play_audio(
-                    audio_url='https://your-audio-file-url.wav'
-                )
+            telnyx.CallControl(call_control_id).answer()
+            logging.info(f"Call answered with ID: {call_control_id}")
 
         return ('', 204)
-    
+
     except Exception as e:
         logging.error(f"Error handling webhook: {e}")
         return ('', 500)
+
 
 def cli_call_and_speak(phone_number, message):from flask import Flask, request, jsonify
 import telnyx
