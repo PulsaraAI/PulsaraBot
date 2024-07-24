@@ -7,5 +7,5 @@ azure-cognitiveservices-speech==1.38.0
 openai>=1.37.0
 Flask==2.0.1
 python-dotenv==0.17.1
-telnyx==2.3.0
+telnyx==2.1.2
 azure-cognitiveservices-speech==1.15.0
