@@ -17,6 +17,7 @@ Suppose your resource group name is MyResourceGroup and your web app name is MyW
 
 
 az webapp deployment list --resource-group Pulsara.AI --name PulsaraBot
+az webapp up --name pulsarabot --resource-group pulsara.ai --runtime "PYTHON:3.8"
 
 
 Interpreting the Output
